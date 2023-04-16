@@ -2,11 +2,11 @@ const jwt = require("jsonwebtoken");
 const fs = require("fs");
 
 const User = require("../models/users");
-const hashPassword = require("../helpers/hashPassword");
+const { hashPassword, comparePassword } = require("../helpers/bcrypt");
 const dev = require("../config");
 const sendEmail = require("../helpers/mailer");
 
-const userSignup = async (req, res) => {
+const userSignUp = async (req, res) => {
   try {
     const { name, email, phone, password } = req.fields;
     const { image } = req.files;
@@ -15,6 +15,11 @@ const userSignup = async (req, res) => {
       return res
         .status(400)
         .json({ message: "Bad Request: some of the fields are missing" });
+
+    if (password.length < 8 || phone.length < 10)
+      return res.status(400).json({
+        message: "Bad Request: password or phone length is not valid",
+      });
 
     if (image && image.size > 2000000)
       return res.status(413).json({
@@ -28,8 +33,6 @@ const userSignup = async (req, res) => {
         .json({ message: "Bad Request: user with this email already exists" });
 
     const hashedPassword = await hashPassword(password);
-    console.log('password:', password);
-    console.log('hashed:', hashedPassword);
 
     const token = jwt.sign(
       { name, email, phone, hashedPassword, image },
@@ -71,7 +74,6 @@ const userVerify = (req, res) => {
       }
 
       const { name, email, phone, hashedPassword, image } = decoded;
-      console.log('decoded', decoded);
 
       const isExist = await User.findOne({ email });
       if (isExist)
@@ -84,6 +86,7 @@ const userVerify = (req, res) => {
         email,
         phone,
         password: hashedPassword,
+        is_verified: 1,
       });
 
       if (image) {
@@ -104,4 +107,50 @@ const userVerify = (req, res) => {
   }
 };
 
-module.exports = { userSignup, userVerify };
+const userSignIn = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password)
+      return res
+        .status(400)
+        .json({ message: "Bad Request: some of the fields are missing" });
+
+    if (password.length < 8)
+      return res.status(400).json({
+        message: "Bad Request: password length is not valid",
+      });
+
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(400).json({
+        message:
+          "Bad Request: user with this email does not exist. Sign up first",
+      });
+
+    const isPasswordMatch = await comparePassword(password, user.password);
+
+    if(!isPasswordMatch)
+      return res.status(400).json({message: "Bad Request: invalid email or password"})
+
+    if(user.is_verified === 0){
+      return res.status(401).json({message: "Unauthorized: please confirm your email first"})
+    }
+
+    res.status(200).json({ message: `Welcome, ${user.name}!` });
+  } catch (error) {
+    res.status(500).json({ message: `Server Error: ${error.message}` });
+  }
+};
+
+const userSignOut = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    console.log(email, password);
+    res.status(200).json({ message: "Signing out is successfull" });
+  } catch (error) {
+    res.status(500).json({ message: `Server Error: ${error.message}` });
+  }
+};
+
+module.exports = { userSignUp, userVerify, userSignIn, userSignOut };
