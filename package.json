@@ -4,7 +4,7 @@
   "description": "users database",
   "main": "./src/app.js",
   "scripts": {
-    "start" : "nodemon ./src/app.js",
+    "start": "nodemon ./src/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -29,6 +29,7 @@
     "express": "^4.18.2",
     "mongoose": "^7.0.3",
     "morgan": "^1.10.0",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "validator": "^13.9.0"
   }
 }
