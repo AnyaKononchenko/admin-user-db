@@ -5,6 +5,7 @@ const morgan = require('morgan');
 
 const dev = require('./config');
 const connectDb = require('./config/connectDb');
+const usersRouter = require('./routers/users');
 
 const app = express();
 
@@ -12,6 +13,8 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use("/users", usersRouter);
 
 
 app.get('/', (req, res) => {

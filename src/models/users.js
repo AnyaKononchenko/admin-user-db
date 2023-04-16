@@ -1,5 +1,4 @@
-const { Schema, model } = require('mongoose');
-import isEmail from 'validator/lib/isEmail';
+const { Schema, model } = require("mongoose");
 
 const userSchema = new Schema({
   name: {
@@ -15,8 +14,10 @@ const userSchema = new Schema({
     unique: true,
     lowercase: true,
     validate: {
-      validator: isEmail(),
-      message: "Email is not valid"
+      validator: (v) => {
+        return /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(v);
+      },
+      message: "Email is not valid",
     },
     required: [true, "Provide an email"],
   },
@@ -28,6 +29,7 @@ const userSchema = new Schema({
   phone: {
     type: String,
     minlength: [10, "Phone should consist of at least 10 digits"],
+    required: [true, "Provide a phone number"],
   },
   image: {
     data: Buffer,
@@ -47,6 +49,6 @@ const userSchema = new Schema({
   },
 });
 
-const User = model('users', userSchema);
+const User = model("users", userSchema);
 
 module.exports = User;
