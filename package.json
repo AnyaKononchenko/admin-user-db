@@ -1,0 +1,34 @@
+{
+  "name": "admin-user-db",
+  "version": "1.0.0",
+  "description": "users database",
+  "main": "./src/app.js",
+  "scripts": {
+    "start" : "nodemon ./src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnyaKononchenko/admin-user-db.git"
+  },
+  "keywords": [
+    "backend",
+    "expressjs",
+    "mongodb"
+  ],
+  "author": "Anna Kononchenko",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AnyaKononchenko/admin-user-db/issues"
+  },
+  "homepage": "https://github.com/AnyaKononchenko/admin-user-db#readme",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "mongoose": "^7.0.3",
+    "morgan": "^1.10.0",
+    "nodemon": "^2.0.22"
+  }
+}
