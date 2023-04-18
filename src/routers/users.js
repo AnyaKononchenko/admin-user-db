@@ -12,6 +12,8 @@ const {
   updateUser,
   getAllUsers,
   updatePassword,
+  recoverPassword,
+  forgotPassword,
 } = require("../controllers/users");
 const dev = require("../config");
 const { isLoggedIn, isLoggedOut } = require("../middlewares/auth");
@@ -27,13 +29,18 @@ router.use(
 );
 
 router.get("/", getAllUsers);
+router.get("/signout", isLoggedIn, userSignOut);
+router.get("/profile", isLoggedIn, userProfile);
+
 router.post("/signup", formidable(), userSignUp);
 router.post("/verify", userVerify);
 router.post("/signin", isLoggedOut, userSignIn);
-router.get("/signout", isLoggedIn, userSignOut);
-router.get("/profile", isLoggedIn, userProfile);
-router.delete("/", isLoggedIn, deleteUser);
+router.post('/forgot-password', forgotPassword)
+
 router.put("/", isLoggedIn, formidable(), updateUser);
-router.put('/update-password', isLoggedIn, updatePassword)
+router.put('/update-password', isLoggedIn, updatePassword);
+router.put('/recover-password', recoverPassword);
+
+router.delete("/", isLoggedIn, deleteUser);
 
 module.exports = router;

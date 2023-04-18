@@ -2,9 +2,10 @@ const jwt = require("jsonwebtoken");
 const fs = require("fs");
 
 const User = require("../models/users");
-const { hashPassword, comparePassword } = require("../helpers/bcrypt");
-const dev = require("../config");
 const sendEmail = require("../helpers/mailer");
+const dev = require("../config");
+
+const { hashPassword, comparePassword } = require("../helpers/bcrypt");
 
 const userSignUp = async (req, res) => {
   try {
@@ -233,6 +234,67 @@ const updatePassword = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(400).json({ message: "This user does not exist" });
+
+    const token = jwt.sign({ id: user._id }, dev.tokenKey, { expiresIn: "5m" });
+
+    const emailContent = {
+      email,
+      subject: "Password Recovery",
+      html: `
+        <h2> Hey ${user.name} </h2>
+        <h4>Password recovery was requested!</h4>
+        <p>To recover your password, please click <a href='${dev.clientUrl}/user/recover-password?token=${token}' target="_blank">here</a></p>
+        <p>If you did not request password recovery, then please ignore this email.</p>
+        `,
+    };
+
+    sendEmail(emailContent);
+
+    res.status(200).json({
+      message: "Password recovery link was sent to your email",
+      token,
+    });
+  } catch (error) {
+    res.status(500).json({ message: `Server Error: ${error.message}` });
+  }
+};
+
+const recoverPassword = async (req, res) => {
+  try {
+    const { token } = req.query;
+    const { password } = req.body;
+
+    jwt.verify(token, dev.tokenKey, async (error, decoded) => {
+      if (error) {
+        return res
+          .status(400)
+          .json({ message: "Bad Request: a token is expired" });
+      }
+      const { id } = decoded;
+      const hashedPassword = await hashPassword(password);
+
+      const user = await User.findByIdAndUpdate(id, {
+        password: hashedPassword,
+      });
+
+      if (!user)
+        return res
+          .status(400)
+          .json({ message: "Bad Request: could not set a new password" });
+
+      res.status(200).json({ message: "Password is recovered" });
+    });
+  } catch (error) {
+    res.status(500).json({ message: `Server Error: ${error.message}` });
+  }
+};
+
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
@@ -255,5 +317,7 @@ module.exports = {
   deleteUser,
   updateUser,
   updatePassword,
+  forgotPassword,
+  recoverPassword,
   getAllUsers,
 };
