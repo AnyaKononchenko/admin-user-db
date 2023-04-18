@@ -10,7 +10,6 @@ const {
   userProfile,
   deleteUser,
   updateUser,
-  getAllUsers,
   updatePassword,
   recoverPassword,
   forgotPassword,
@@ -28,18 +27,17 @@ router.use(
   })
 );
 
-router.get("/", getAllUsers);
 router.get("/signout", isLoggedIn, userSignOut);
 router.get("/profile", isLoggedIn, userProfile);
 
 router.post("/signup", formidable(), userSignUp);
 router.post("/verify", userVerify);
 router.post("/signin", isLoggedOut, userSignIn);
-router.post('/forgot-password', forgotPassword)
+router.post("/forgot-password", isLoggedOut, forgotPassword);
 
 router.put("/", isLoggedIn, formidable(), updateUser);
-router.put('/update-password', isLoggedIn, updatePassword);
-router.put('/recover-password', recoverPassword);
+router.put("/update-password", isLoggedIn, updatePassword);
+router.put("/recover-password", isLoggedOut, recoverPassword);
 
 router.delete("/", isLoggedIn, deleteUser);
 

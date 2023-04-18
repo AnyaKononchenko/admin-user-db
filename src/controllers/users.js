@@ -270,6 +270,11 @@ const recoverPassword = async (req, res) => {
     const { token } = req.query;
     const { password } = req.body;
 
+    if (!password || password.length < 8)
+      return res.status(400).json({
+        message: "Bad Request: password is not valid",
+      });
+
     jwt.verify(token, dev.tokenKey, async (error, decoded) => {
       if (error) {
         return res
@@ -295,18 +300,7 @@ const recoverPassword = async (req, res) => {
   }
 };
 
-const getAllUsers = async (req, res) => {
-  try {
-    const users = await User.find();
-    if (!users)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: could not get all users" });
-    res.status(200).json({ message: "OK", users });
-  } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
-  }
-};
+
 
 module.exports = {
   userSignUp,
@@ -319,5 +313,4 @@ module.exports = {
   updatePassword,
   forgotPassword,
   recoverPassword,
-  getAllUsers,
 };

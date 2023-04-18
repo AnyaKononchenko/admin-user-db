@@ -7,6 +7,7 @@ const cookieParser = require('cookie-parser');
 const dev = require('./config');
 const connectDb = require('./config/connectDb');
 const usersRouter = require('./routers/users');
+const adminRouter = require('./routers/admin');
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser())
 
 app.use("/users", usersRouter);
+app.use("/admin", adminRouter);
 
 app.get('/', (req, res) => {
   res.status(200).send("You are at root")
