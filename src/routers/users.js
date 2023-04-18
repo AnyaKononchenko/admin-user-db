@@ -10,6 +10,7 @@ const {
   userProfile,
 } = require("../controllers/users");
 const dev = require("../config");
+const { isLoggedIn, isLoggedOut } = require("../middlewares/auth");
 
 router.use(
   session({
@@ -17,14 +18,14 @@ router.use(
     secret: dev.sessionKey,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, maxAge: 10 * 60 },
+    cookie: { secure: false, maxAge: 100 * 6000 },
   })
 );
 
 router.post("/signup", formidable(), userSignUp);
 router.post("/verify", userVerify);
-router.post("/signin", userSignIn);
-router.get("/signout", userSignOut);
-router.get("/profile", userProfile);
+router.post("/signin", isLoggedOut, userSignIn);
+router.get("/signout", isLoggedIn, userSignOut);
+router.get("/profile", isLoggedIn, userProfile);
 
 module.exports = router;

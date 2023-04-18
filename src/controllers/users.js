@@ -143,17 +143,22 @@ const userSignIn = async (req, res) => {
 
 const userSignOut = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    console.log(email, password);
+    req.session.destroy();
+    res.clearCookie('user_session');
+    
     res.status(200).json({ message: "Signing out is successfull" });
   } catch (error) {
     res.status(500).json({ message: `Server Error: ${error.message}` });
   }
 };
 
-const userProfile = (req, res) => {
+const userProfile = async (req, res) => {
   try {
-    
+    const user = await User.findOne({_id: req.session.userId});
+    if(!user)
+      return res.status(400).json({ message: "Bad Request: this user does not exist" });
+    res.status(200).json({ message: `Welcome, ${user.name}!`, user });
+
   } catch (error) {
     res.status(500).json({ message: `Server Error: ${error.message}` });
   }
