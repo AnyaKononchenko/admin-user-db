@@ -209,6 +209,30 @@ const updateUser = async (req, res) => {
   }
 };
 
+const updatePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+
+    const user = await User.findById(req.session.userId);
+
+    const isPasswordMatch = await comparePassword(oldPassword, user.password);
+    if (!isPasswordMatch)
+      return res.status(401).json({ message: "Wrong password was entered!" });
+
+    user.password = await hashPassword(newPassword);
+
+    const updatedUser = await user.save();
+    if (!updatedUser)
+      return res
+        .status(400)
+        .json({ message: "Bad Request: could not save the changes" });
+
+    res.status(200).json({ message: "OK: password was updated" });
+  } catch (error) {
+    res.status(500).json({ message: `Server Error: ${error.message}` });
+  }
+};
+
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
@@ -230,5 +254,6 @@ module.exports = {
   userProfile,
   deleteUser,
   updateUser,
+  updatePassword,
   getAllUsers,
 };

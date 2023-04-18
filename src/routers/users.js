@@ -11,6 +11,7 @@ const {
   deleteUser,
   updateUser,
   getAllUsers,
+  updatePassword,
 } = require("../controllers/users");
 const dev = require("../config");
 const { isLoggedIn, isLoggedOut } = require("../middlewares/auth");
@@ -25,6 +26,7 @@ router.use(
   })
 );
 
+router.get("/", getAllUsers);
 router.post("/signup", formidable(), userSignUp);
 router.post("/verify", userVerify);
 router.post("/signin", isLoggedOut, userSignIn);
@@ -32,6 +34,6 @@ router.get("/signout", isLoggedIn, userSignOut);
 router.get("/profile", isLoggedIn, userProfile);
 router.delete("/", isLoggedIn, deleteUser);
 router.put("/", isLoggedIn, formidable(), updateUser);
-router.get("/", getAllUsers);
+router.put('/update-password', isLoggedIn, updatePassword)
 
 module.exports = router;
