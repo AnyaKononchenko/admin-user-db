@@ -45,9 +45,10 @@ const userSignUp = async (req, res) => {
       subject: "Your Account Verification",
       html: `
         <h2> Hey ${name} </h2>
-        <p>To activate your account, please click <a href='${dev.clientUrl}/user/verify/${token}' target="_blank">here</a></p>
+        <p>To activate your account, please click <a href='${dev.clientUrl}/user/verify?token=${token}' target="_blank">here</a></p>
       `,
     };
+     
     sendEmail(emailContent);
 
     res
@@ -86,7 +87,6 @@ const userVerify = (req, res) => {
         email,
         phone,
         password: hashedPassword,
-        is_verified: 1,
       });
 
       if (image) {
@@ -133,9 +133,7 @@ const userSignIn = async (req, res) => {
     if(!isPasswordMatch)
       return res.status(400).json({message: "Bad Request: invalid email or password"})
 
-    if(user.is_verified === 0){
-      return res.status(401).json({message: "Unauthorized: please confirm your email first"})
-    }
+    req.session.userId = user._id;
 
     res.status(200).json({ message: `Welcome, ${user.name}!` });
   } catch (error) {
@@ -153,4 +151,13 @@ const userSignOut = async (req, res) => {
   }
 };
 
-module.exports = { userSignUp, userVerify, userSignIn, userSignOut };
+const userProfile = (req, res) => {
+  try {
+    
+  } catch (error) {
+    res.status(500).json({ message: `Server Error: ${error.message}` });
+  }
+}
+
+
+module.exports = { userSignUp, userVerify, userSignIn, userSignOut, userProfile };
