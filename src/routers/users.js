@@ -30,8 +30,8 @@ router.post("/verify", userVerify);
 router.post("/signin", isLoggedOut, userSignIn);
 router.get("/signout", isLoggedIn, userSignOut);
 router.get("/profile", isLoggedIn, userProfile);
-router.delete("/", deleteUser);
-router.put('/', updateUser);
-router.get('/', getAllUsers);
+router.delete("/", isLoggedIn, deleteUser);
+router.put("/", isLoggedIn, formidable(), updateUser);
+router.get("/", getAllUsers);
 
 module.exports = router;

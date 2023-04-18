@@ -61,7 +61,7 @@ const userSignUp = async (req, res) => {
 
 const userVerify = (req, res) => {
   try {
-    const { token } = req.body;
+    const { token } = req.query;
     if (!token)
       return res
         .status(400)
@@ -156,7 +156,7 @@ const userSignOut = async (req, res) => {
 
 const userProfile = async (req, res) => {
   try {
-    const user = await User.findOne({ _id: req.session.userId });
+    const user = await User.findById(req.session.userId);
     if (!user)
       return res
         .status(400)
@@ -171,8 +171,7 @@ const userProfile = async (req, res) => {
 
 const deleteUser = async (req, res) => {
   try {
-    const { id } = req.query;
-    const deleteUser = await User.findByIdAndDelete(id);
+    const deleteUser = await User.findByIdAndDelete(req.session.userId);
     if (!deleteUser)
       return res
         .status(400)
@@ -185,26 +184,19 @@ const deleteUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const { name, phone } = req.body;
-    const { id } = req.query;
-    console.log(name)
-    console.log(id)
-
-    const user = await User.findById(id);
-    console.log(user);
+    const { image } = req.files;
 
     const updateUser = await User.findOneAndUpdate(
-      { _id: id },
-      {
-        $set: {
-          name,
-          phone,
-        },
-      },
+      { _id: req.session.userId },
+      { ...req.fields },
       { new: true }
     );
 
-    console.log(updateUser);
+    if (image) {
+      updateUser.image.data = fs.readFileSync(image.path);
+      updateUser.image.contentType = image.type;
+      await updateUser.save();
+    }
 
     if (!updateUser)
       return res
