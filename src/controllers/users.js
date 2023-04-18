@@ -48,7 +48,7 @@ const userSignUp = async (req, res) => {
         <p>To activate your account, please click <a href='${dev.clientUrl}/user/verify?token=${token}' target="_blank">here</a></p>
       `,
     };
-     
+
     sendEmail(emailContent);
 
     res
@@ -130,8 +130,10 @@ const userSignIn = async (req, res) => {
 
     const isPasswordMatch = await comparePassword(password, user.password);
 
-    if(!isPasswordMatch)
-      return res.status(400).json({message: "Bad Request: invalid email or password"})
+    if (!isPasswordMatch)
+      return res
+        .status(400)
+        .json({ message: "Bad Request: invalid email or password" });
 
     req.session.userId = user._id;
 
@@ -144,8 +146,8 @@ const userSignIn = async (req, res) => {
 const userSignOut = async (req, res) => {
   try {
     req.session.destroy();
-    res.clearCookie('user_session');
-    
+    res.clearCookie("user_session");
+
     res.status(200).json({ message: "Signing out is successfull" });
   } catch (error) {
     res.status(500).json({ message: `Server Error: ${error.message}` });
@@ -154,15 +156,87 @@ const userSignOut = async (req, res) => {
 
 const userProfile = async (req, res) => {
   try {
-    const user = await User.findOne({_id: req.session.userId});
-    if(!user)
-      return res.status(400).json({ message: "Bad Request: this user does not exist" });
-    res.status(200).json({ message: `Welcome, ${user.name}!`, user });
-
+    const user = await User.findOne({ _id: req.session.userId });
+    if (!user)
+      return res
+        .status(400)
+        .json({ message: "Bad Request: this user does not exist" });
+    res
+      .status(200)
+      .json({ message: `OK: ${user.name}'s profile is available`, user });
   } catch (error) {
     res.status(500).json({ message: `Server Error: ${error.message}` });
   }
-}
+};
 
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.query;
+    const deleteUser = await User.findByIdAndDelete(id);
+    if (!deleteUser)
+      return res
+        .status(400)
+        .json({ message: "Bad Request: could not delete this user" });
+    res.status(200).json({ message: "OK: user was deleted" });
+  } catch (error) {
+    res.status(500).json({ message: `Server Error: ${error.message}` });
+  }
+};
 
-module.exports = { userSignUp, userVerify, userSignIn, userSignOut, userProfile };
+const updateUser = async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+    const { id } = req.query;
+    console.log(name)
+    console.log(id)
+
+    const user = await User.findById(id);
+    console.log(user);
+
+    const updateUser = await User.findOneAndUpdate(
+      { _id: id },
+      {
+        $set: {
+          name,
+          phone,
+        },
+      },
+      { new: true }
+    );
+
+    console.log(updateUser);
+
+    if (!updateUser)
+      return res
+        .status(400)
+        .json({ message: "Bad Request: could not update this user" });
+
+    res.status(200).json({ message: "OK: user was updated", user: updateUser });
+  } catch (error) {
+    res.status(500).json({ message: `Server Error: ${error.message}` });
+  }
+};
+
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find();
+    if (!users)
+      return res
+        .status(400)
+        .json({ message: "Bad Request: could not get all users" });
+    res.status(200).json({ message: "OK", users });
+  } catch (error) {
+    res.status(500).json({ message: `Server Error: ${error.message}` });
+  }
+};
+
+module.exports = {
+  userSignUp,
+  userVerify,
+  userSignIn,
+  userSignOut,
+  userProfile,
+  deleteUser,
+  updateUser,
+  getAllUsers,
+};

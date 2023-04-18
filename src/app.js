@@ -18,7 +18,6 @@ app.use(cookieParser())
 
 app.use("/users", usersRouter);
 
-
 app.get('/', (req, res) => {
   res.status(200).send("You are at root")
 })
