@@ -32,10 +32,14 @@ const userSchema = new Schema({
     required: [true, "Provide a phone number"],
   },
   image: {
-    data: Buffer,
-    contentType: String,
+    type: String,
+    default: "../public/images/users/default-profile.jpg"
   },
   is_admin: {
+    type: Number,
+    default: 0,
+  },
+  is_banned:{
     type: Number,
     default: 0,
   },

@@ -6,32 +6,32 @@ const sendEmail = require("../helpers/mailer");
 const dev = require("../config");
 
 const { hashPassword, comparePassword } = require("../helpers/bcrypt");
+const sendResponse = require("../helpers/responseHandler");
+const { isPasswordValid } = require("../helpers/requestBodyValidator");
 
 const userSignUp = async (req, res) => {
   try {
-    const { name, email, phone, password } = req.fields;
-    const { image } = req.files;
+    const { name, email, phone, password } = req.body;
+    const image = req.file.filename;
 
     if (!name || !email || !phone || !password)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: some of the fields are missing" });
+      sendResponse(
+        res,
+        400,
+        false,
+        "Bad Request: some of the fields are missing"
+      );
 
-    if (password.length < 8 || phone.length < 10)
-      return res.status(400).json({
-        message: "Bad Request: password or phone length is not valid",
-      });
-
-    if (image && image.size > 2000000)
-      return res.status(413).json({
-        message: "Payload Too Large: image size should be less than 2MB",
-      });
+    isPasswordValid(res, password);
 
     const isExist = await User.findOne({ email });
     if (isExist)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: user with this email already exists" });
+      sendResponse(
+        res,
+        400,
+        false,
+        "Bad Request:  user with this email already exists"
+      );
 
     const hashedPassword = await hashPassword(password);
 
@@ -50,11 +50,15 @@ const userSignUp = async (req, res) => {
       `,
     };
 
-    sendEmail(emailContent);
+    // sendEmail(emailContent);
 
-    res
-      .status(200)
-      .json({ message: "User is registered and needs to be verified", token });
+    sendResponse(
+      res,
+      200,
+      true,
+      "User is registered and needs to be verified",
+      token
+    );
   } catch (error) {
     res.status(500).json({ message: `Server Error: ${error.message}` });
   }
@@ -64,47 +68,40 @@ const userVerify = (req, res) => {
   try {
     const { token } = req.query;
     if (!token)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: a token is missing" });
+      sendResponse(res, 400, false, "Bad Request: a token is missing");
 
     jwt.verify(token, dev.tokenKey, async (error, decoded) => {
       if (error) {
-        return res
-          .status(400)
-          .json({ message: "Bad Request: a token is expired" });
+        sendResponse(res, 400, false, "Bad Request: a token is expired");
       }
 
       const { name, email, phone, hashedPassword, image } = decoded;
 
       const isExist = await User.findOne({ email });
       if (isExist)
-        return res.status(400).json({
-          message: "Bad Request: user with this email already exists",
-        });
+        sendResponse(
+          res,
+          400,
+          false,
+          "Bad Request: user with this email already exists"
+        );
 
       const newUser = new User({
         name,
         email,
         phone,
         password: hashedPassword,
+        image: `/public/images/users/${image}`,
       });
-
-      if (image) {
-        newUser.image.data = fs.readFileSync(image.path);
-        newUser.image.contentType = image.type;
-      }
 
       const savedUser = await newUser.save();
       if (!savedUser)
-        return res
-          .status(400)
-          .json({ message: "Bad Request: something went wrong" });
+        sendResponse(res, 400, false, "Bad Request: could not save a new user");
 
-      res.status(200).json({ message: "User is verified" });
+      sendResponse(res, 200, true, "User is verified");
     });
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
@@ -113,34 +110,42 @@ const userSignIn = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: some of the fields are missing" });
+      sendResponse(
+        res,
+        400,
+        false,
+        "Bad Request: some of the fields are missing"
+      );
 
-    if (password.length < 8)
-      return res.status(400).json({
-        message: "Bad Request: password length is not valid",
-      });
+    isPasswordValid(res, password);
 
     const user = await User.findOne({ email });
     if (!user)
-      return res.status(400).json({
-        message:
-          "Bad Request: user with this email does not exist. Sign up first",
-      });
+      sendResponse(
+        res,
+        400,
+        false,
+        "Bad Request: user with this email does not exist. Sign up first"
+      );
 
     const isPasswordMatch = await comparePassword(password, user.password);
 
     if (!isPasswordMatch)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: invalid email or password" });
+      sendResponse(res, 400, false, "Bad Request: invalid email or password");
+
+    if (user.is_banned)
+      sendResponse(
+        res,
+        403,
+        false,
+        "Bad Request: this user is banned at the moment"
+      );
 
     req.session.userId = user._id;
 
-    res.status(200).json({ message: `Welcome, ${user.name}!` });
+    sendResponse(res, 200, true, `Welcome, ${user.name}!`);
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
@@ -149,9 +154,9 @@ const userSignOut = async (req, res) => {
     req.session.destroy();
     res.clearCookie("user_session");
 
-    res.status(200).json({ message: "Signing out is successfull" });
+    sendResponse(res, 200, true, "Signing out is successfull");
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
@@ -159,14 +164,17 @@ const userProfile = async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: this user does not exist" });
-    res
-      .status(200)
-      .json({ message: `OK: ${user.name}'s profile is available`, user });
+      sendResponse(res, 400, false, "Bad Request: this user does not exist");
+
+    sendResponse(
+      res,
+      200,
+      true,
+      `OK: ${user.name}'s profile is available`,
+      user
+    );
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
@@ -174,12 +182,11 @@ const deleteUser = async (req, res) => {
   try {
     const deleteUser = await User.findByIdAndDelete(req.session.userId);
     if (!deleteUser)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: could not delete this user" });
-    res.status(200).json({ message: "OK: user was deleted" });
+      sendResponse(res, 400, false, "Bad Request: could not delete this user");
+
+    sendResponse(res, 200, true, "OK: user was deleted");
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
@@ -200,13 +207,11 @@ const updateUser = async (req, res) => {
     }
 
     if (!updateUser)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: could not update this user" });
+      sendResponse(res, 400, false, "Bad Request: could not update this user");
 
-    res.status(200).json({ message: "OK: user was updated", user: updateUser });
+    sendResponse(res, 200, true, "OK: user was updated", updateUser);
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
@@ -218,19 +223,17 @@ const updatePassword = async (req, res) => {
 
     const isPasswordMatch = await comparePassword(oldPassword, user.password);
     if (!isPasswordMatch)
-      return res.status(401).json({ message: "Wrong password was entered!" });
+      sendResponse(res, 401, false, "Wrong password was entered!");
 
     user.password = await hashPassword(newPassword);
 
     const updatedUser = await user.save();
     if (!updatedUser)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: could not save the changes" });
+      sendResponse(res, 400, false, "Bad Request: could not save the changes");
 
-    res.status(200).json({ message: "OK: password was updated" });
+    sendResponse(res, 200, true, "OK: password was updated");
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
@@ -239,7 +242,7 @@ const forgotPassword = async (req, res) => {
     const { email } = req.body;
     const user = await User.findOne({ email });
     if (!user)
-      return res.status(400).json({ message: "This user does not exist" });
+      sendResponse(res, 400, false, "Bad Request: this user does not exist");
 
     const token = jwt.sign({ id: user._id }, dev.tokenKey, { expiresIn: "5m" });
 
@@ -256,12 +259,15 @@ const forgotPassword = async (req, res) => {
 
     sendEmail(emailContent);
 
-    res.status(200).json({
-      message: "Password recovery link was sent to your email",
-      token,
-    });
+    sendResponse(
+      res,
+      200,
+      true,
+      "Password recovery link was sent to your email",
+      token
+    );
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
@@ -270,16 +276,11 @@ const recoverPassword = async (req, res) => {
     const { token } = req.query;
     const { password } = req.body;
 
-    if (!password || password.length < 8)
-      return res.status(400).json({
-        message: "Bad Request: password is not valid",
-      });
+    isPasswordValid(res, password);
 
     jwt.verify(token, dev.tokenKey, async (error, decoded) => {
       if (error) {
-        return res
-          .status(400)
-          .json({ message: "Bad Request: a token is expired" });
+        sendResponse(res, 400, false, "Bad Request: a token is expired");
       }
       const { id } = decoded;
       const hashedPassword = await hashPassword(password);
@@ -289,18 +290,19 @@ const recoverPassword = async (req, res) => {
       });
 
       if (!user)
-        return res
-          .status(400)
-          .json({ message: "Bad Request: could not set a new password" });
+        sendResponse(
+          res,
+          400,
+          false,
+          "Bad Request: could not set a new password"
+        );
 
-      res.status(200).json({ message: "Password is recovered" });
+      sendResponse(res, 200, true, "Password is recovered");
     });
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
-
-
 
 module.exports = {
   userSignUp,

@@ -72,4 +72,34 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+const adminDeleteUser = async (req, res) => {
+  try {
+    
+
+    res.status(200).json({ message: "User is deleted" });
+  } catch (error) {
+    res.status(500).json({ message: `Server Error: ${error.message}` });
+  }
+};
+
+const adminUpdateUser = async (req, res) => {
+  try {
+    
+
+    res.status(200).json({ message: "User is updated" });
+  } catch (error) {
+    res.status(500).json({ message: `Server Error: ${error.message}` });
+  }
+};
+
+const adminDeleteAllUsers = async (req, res) => {
+  try {
+    
+
+    res.status(200).json({ message: "User is updated" });
+  } catch (error) {
+    res.status(500).json({ message: `Server Error: ${error.message}` });
+  }
+};
+
 module.exports = { adminSignIn, adminSignOut, getAllUsers };

@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const session = require("express-session");
-const formidable = require("express-formidable");
+const upload = require('../middlewares/uploadImage');
 
 const {
   userSignUp,
@@ -30,12 +30,12 @@ router.use(
 router.get("/signout", isLoggedIn, userSignOut);
 router.get("/profile", isLoggedIn, userProfile);
 
-router.post("/signup", formidable(), userSignUp);
+router.post("/signup", upload.single('image'), userSignUp);
 router.post("/verify", userVerify);
 router.post("/signin", isLoggedOut, userSignIn);
 router.post("/forgot-password", isLoggedOut, forgotPassword);
 
-router.put("/", isLoggedIn, formidable(), updateUser);
+router.put("/", isLoggedIn, upload.single('image'), updateUser);
 router.put("/update-password", isLoggedIn, updatePassword);
 router.put("/recover-password", isLoggedOut, recoverPassword);
 
