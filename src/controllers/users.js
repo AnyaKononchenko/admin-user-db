@@ -12,7 +12,7 @@ const { isPasswordValid } = require("../helpers/requestBodyValidator");
 const userSignUp = async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
-    const image = req.file.filename;
+    const image = req.file && req.file.filename;
 
     if (!name || !email || !phone || !password)
       sendResponse(
@@ -60,7 +60,7 @@ const userSignUp = async (req, res) => {
       token
     );
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
@@ -91,8 +91,9 @@ const userVerify = (req, res) => {
         email,
         phone,
         password: hashedPassword,
-        image: `/public/images/users/${image}`,
       });
+
+      if (image) newUser = { ...userImage, image };
 
       const savedUser = await newUser.save();
       if (!savedUser)
