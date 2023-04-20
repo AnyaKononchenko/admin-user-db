@@ -33,7 +33,7 @@ const userSchema = new Schema({
   },
   image: {
     type: String,
-    default: "../public/images/users/default-profile.jpg"
+    default: "/public/images/users/default-profile.jpg"
   },
   is_admin: {
     type: Number,

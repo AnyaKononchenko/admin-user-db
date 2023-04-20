@@ -1,50 +1,46 @@
-const jwt = require("jsonwebtoken");
-const fs = require("fs");
-
 const User = require("../models/users");
-const sendEmail = require("../helpers/mailer");
 const dev = require("../config");
 
 const { comparePassword } = require("../helpers/bcrypt");
+const sendResponse = require("../helpers/responseHandler");
+const { isPasswordValid } = require("../helpers/requestBodyValidator");
 
 const adminSignIn = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: some of the fields are missing" });
+      sendResponse(
+        res,
+        400,
+        false,
+        "Bad Request: some of the fields are missing"
+      );
 
-    if (password.length < 8)
-      return res.status(400).json({
-        message: "Bad Request: password length is not valid",
-      });
+    isPasswordValid(res, password);
 
     const user = await User.findOne({ email });
     if (!user)
-      return res.status(400).json({
-        message:
-          "Bad Request: user with this email does not exist. Sign up first",
-      });
+      sendResponse(
+        res,
+        400,
+        false,
+        "Bad Request: user with this email does not exist. Sign up first."
+      );
 
     const isPasswordMatch = await comparePassword(password, user.password);
 
-    if (!isPasswordMatch)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: invalid email or password" });
+    if (!isPasswordMatch) 
+      sendResponse(res, 400, false, "Bad Request: invalid email or password");
 
     if (user.is_admin === 0)
-      return res
-        .status(403)
-        .json({ message: "Forbidden: access rejected" });
+      sendResponse(res, 403, false, "Forbidden: access rejected");
 
     req.session.userId = user._id;
 
-    res.status(200).json({ message: `Welcome, admin ${user.name}!` });
+    sendResponse(res, 200, true, `Welcome, admin ${user.name}!`);
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
@@ -53,53 +49,67 @@ const adminSignOut = async (req, res) => {
     req.session.destroy();
     res.clearCookie("admin_session");
 
-    res.status(200).json({ message: "Admin session is ended" });
+    sendResponse(res, 200, true, "Admin session is ended");
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({is_admin: 0});
+    const users = await User.find({ is_admin: 0 });
     if (!users)
-      return res
-        .status(400)
-        .json({ message: "Bad Request: could not get all users" });
-    res.status(200).json({ message: "OK", users });
+      sendResponse(res, 400, false, "Bad Request: could not get all users");
+
+    sendResponse(res, 200, true, "Returned all users", users);
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
 const adminDeleteUser = async (req, res) => {
   try {
-    
+    const { id } = req.query;
+    const deleteUser = await User.findByIdAndDelete(id);
+    if (!deleteUser)
+      sendResponse(res, 400, false, "Could not delete this user");
 
-    res.status(200).json({ message: "User is deleted" });
+    sendResponse(res, 200, true, "User is deleted");
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
 const adminUpdateUser = async (req, res) => {
   try {
-    
+    const { id } = req.query;
+    const foundUser = await User.findById(id);
+    if (!foundUser)
+      sendResponse(
+        res,
+        400,
+        false,
+        "Bad Request: user with this ID is not found"
+      );
 
-    res.status(200).json({ message: "User is updated" });
+    sendResponse(res, 200, true, "User is updated");
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
 const adminDeleteAllUsers = async (req, res) => {
   try {
-    
-
-    res.status(200).json({ message: "User is updated" });
+    sendResponse(res, 200, true, "All users were deleted");
   } catch (error) {
-    res.status(500).json({ message: `Server Error: ${error.message}` });
+    sendResponse(res, 500, false, `Server Error: ${error.message}`);
   }
 };
 
-module.exports = { adminSignIn, adminSignOut, getAllUsers };
+module.exports = {
+  adminSignIn,
+  adminSignOut,
+  getAllUsers,
+  adminDeleteUser,
+  adminUpdateUser,
+};

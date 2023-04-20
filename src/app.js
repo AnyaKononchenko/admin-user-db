@@ -18,7 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser())
 
 app.use("/users", usersRouter);
-app.use("/admin", adminRouter);
+app.use("/dashboard", adminRouter);
 
 app.get('/', (req, res) => {
   res.status(200).send("You are at root")

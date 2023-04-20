@@ -91,15 +91,14 @@ const userVerify = (req, res) => {
         email,
         phone,
         password: hashedPassword,
+        image,
       });
-
-      if (image) newUser = { ...userImage, image };
 
       const savedUser = await newUser.save();
       if (!savedUser)
         sendResponse(res, 400, false, "Bad Request: could not save a new user");
 
-      sendResponse(res, 200, true, "User is verified");
+      sendResponse(res, 201, true, "User is verified", savedUser);
     });
   } catch (error) {
     sendResponse(res, 500, false, `Server Error: ${error.message}`);
@@ -193,19 +192,13 @@ const deleteUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const { image } = req.files;
+    const image = req.file && req.file.filename;
 
     const updateUser = await User.findOneAndUpdate(
       { _id: req.session.userId },
-      { ...req.fields },
+      { ...req.fields, image: `/public/images/users/${image}` },
       { new: true }
     );
-
-    if (image) {
-      updateUser.image.data = fs.readFileSync(image.path);
-      updateUser.image.contentType = image.type;
-      await updateUser.save();
-    }
 
     if (!updateUser)
       sendResponse(res, 400, false, "Bad Request: could not update this user");
